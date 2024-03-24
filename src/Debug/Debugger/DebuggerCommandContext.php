@@ -28,7 +28,8 @@ class DebuggerCommandContext
         protected string $command,
         /** @var string[] */
         protected array $arguments
-    ) {}
+    ) {
+    }
 
     public function getCommand(): string
     {

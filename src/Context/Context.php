@@ -19,4 +19,6 @@ namespace Swow\Context;
 
 use ArrayObject;
 
-class Context extends ArrayObject {}
+class Context extends ArrayObject
+{
+}

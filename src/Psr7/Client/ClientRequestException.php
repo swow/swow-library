@@ -15,4 +15,6 @@ namespace Swow\Psr7\Client;
 
 use Psr\Http\Client\RequestExceptionInterface;
 
-class ClientRequestException extends ClientExceptionAbstract implements RequestExceptionInterface {}
+class ClientRequestException extends ClientExceptionAbstract implements RequestExceptionInterface
+{
+}

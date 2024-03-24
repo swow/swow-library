@@ -28,4 +28,6 @@ interface Psr17PlusFactoryInterface extends
     ResponseFactoryInterface,
     ServerRequestFactoryInterface,
     UploadedFileFactoryInterface,
-    ServerConnectionFactoryInterface {}
+    ServerConnectionFactoryInterface
+{
+}
