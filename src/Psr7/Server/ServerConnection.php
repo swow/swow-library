@@ -38,6 +38,7 @@ use Swow\WebSocket\WebSocket;
 use TypeError;
 
 use function base64_encode;
+use function dechex;
 use function get_debug_type;
 use function is_array;
 use function is_bool;
@@ -130,6 +131,21 @@ class ServerConnection extends Socket implements ProtocolTypeInterface
             $server->getStreamFactory(),
             $server->getUploadedFileFactory()
         );
+    }
+
+    public function sendHttpHeader(int $statusCode = HttpStatus::OK, string $reasonPhrase = '', array $headers = [], string $protocolVersion = '1.1'): static
+    {
+        return $this->send(Http::packResponse($statusCode, $reasonPhrase, $headers, '', $protocolVersion));
+    }
+
+    public function sendHttpChunk(string|Stringable $chunkData): static
+    {
+        return $this->write([dechex(strlen($chunkData)), "\r\n", $chunkData, "\r\n"]);
+    }
+
+    public function sendHttpLastChunk(): static
+    {
+        return $this->send("0\r\n\r\n");
     }
 
     public function sendHttpResponse(ResponseInterface $response): static
