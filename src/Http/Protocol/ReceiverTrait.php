@@ -37,6 +37,7 @@ use function fopen;
 use function fwrite;
 use function implode;
 use function in_array;
+use function max;
 use function parse_str;
 use function sprintf;
 use function strcasecmp;
@@ -77,7 +78,7 @@ trait ReceiverTrait
 
     protected function __constructReceiver(int $type, int $events): void
     {
-        $this->buffer = new Buffer(Buffer::COMMON_SIZE);
+        $this->buffer = new Buffer(max(Buffer::COMMON_SIZE, $this->getMaxHeaderLength()));
         $requiredEvents =
             HttpParser::EVENT_URL |
             HttpParser::EVENT_STATUS |

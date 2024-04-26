@@ -86,8 +86,8 @@ class ServerConnection extends Socket implements ProtocolTypeInterface
     public function __construct(Server $server)
     {
         parent::__construct($server->getSimpleType());
-        $this->__constructReceiver(HttpParser::TYPE_REQUEST, static::DEFAULT_HTTP_PARSER_EVENTS);
         $this->server = $server;
+        $this->__constructReceiver(HttpParser::TYPE_REQUEST, static::DEFAULT_HTTP_PARSER_EVENTS);
 
         // Inherited server configuration.
         $this->setRecvMessageTimeout($server->getRecvMessageTimeout());
