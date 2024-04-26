@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swow\Tests;
 
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Swow;
 
@@ -21,8 +22,8 @@ use function strlen;
 
 /**
  * @internal
- * @coversNothing
  */
+#[CoversNothing]
 final class SwowTest extends TestCase
 {
     public function testSwowExtension(): void

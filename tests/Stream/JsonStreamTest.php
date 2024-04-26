@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swow\Tests\Stream;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Swow\Coroutine;
 use Swow\Errno;
@@ -25,8 +26,8 @@ use function Swow\TestUtils\getRandomBytes;
 
 /**
  * @internal
- * @covers \Swow\Stream\JsonStream
  */
+#[CoversClass(JsonStream::class)]
 final class JsonStreamTest extends TestCase
 {
     public function testServer(): void

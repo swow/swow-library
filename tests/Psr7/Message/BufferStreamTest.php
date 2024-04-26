@@ -14,9 +14,11 @@ declare(strict_types=1);
 namespace Swow\Tests\Psr7\Message;
 
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Stringable;
 use Swow\Psr7\Message\BufferStream;
+use Swow\Psr7\Psr7;
 use TypeError;
 use ValueError;
 
@@ -27,9 +29,9 @@ use const SEEK_END;
 
 /**
  * @internal
- * @covers \Swow\Psr7\Message\BufferStream
- * @covers \Swow\Psr7\Psr7
  */
+#[CoversClass(BufferStream::class)]
+#[CoversClass(Psr7::class)]
 final class BufferStreamTest extends TestCase
 {
     public function testConstructorWithString(): void

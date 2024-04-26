@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swow\Tests\Stream;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Swow\Coroutine;
@@ -26,8 +27,8 @@ use function Swow\TestUtils\getRandomBytes;
 
 /**
  * @internal
- * @covers \Swow\Stream\VarStream
  */
+#[CoversClass(VarStream::class)]
 final class VarStreamTest extends TestCase
 {
     public function testServer(): void

@@ -13,15 +13,17 @@ declare(strict_types=1);
 
 namespace Swow\Tests\Psr7\Message;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Swow\Psr7\Message\AbstractMessage;
 use Swow\Psr7\Message\MessagePlusInterface;
 use Swow\Psr7\Psr7;
 
 /**
  * @internal
- * @covers \Swow\Psr7\Message\AbstractMessage
- * @covers \Swow\Psr7\Psr7
  */
+#[CoversClass(AbstractMessage::class)]
+#[CoversClass(Psr7::class)]
 final class MessageTest extends TestCase
 {
     public function testAddHeader(): void

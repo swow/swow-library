@@ -28,6 +28,7 @@ use Psr\Http\Message\UriInterface;
 use Swow\Buffer;
 use Swow\Http\Message\ResponseEntity;
 use Swow\Http\Message\ServerRequestEntity;
+use Swow\Http\Message\UploadedFileEntity;
 use Swow\Http\Status;
 use Swow\Psr7\Message\BufferStream;
 use Swow\Psr7\Message\PhpStream;
@@ -189,7 +190,7 @@ trait CreatorTrait
     }
 
     /**
-     * @param array<\Swow\Http\Message\UploadedFileEntity> $uploadedFileEntities
+     * @param array<UploadedFileEntity> $uploadedFileEntities
      * @return array<UploadedFileInterface|UploadedFilePlusInterface|UploadedFile>
      */
     public static function createUploadedFilesFromEntity(array $uploadedFileEntities, ?StreamFactoryInterface $streamFactory = null, ?UploadedFileFactoryInterface $uploadedFileFactory = null): array

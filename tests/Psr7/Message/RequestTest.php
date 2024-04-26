@@ -13,14 +13,16 @@ declare(strict_types=1);
 
 namespace Swow\Tests\Psr7\Message;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Swow\Psr7\Message\Request;
 use Swow\Psr7\Psr7;
 
 /**
  * @internal
- * @covers \Swow\Psr7\Message\Request
- * @covers \Swow\Psr7\Psr7
  */
+#[CoversClass(Request::class)]
+#[CoversClass(Psr7::class)]
 final class RequestTest extends TestCase
 {
     public function testGetRequestTarget(): void

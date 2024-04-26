@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swow\Tests\Psr7\Client;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Swow\Coroutine;
 use Swow\Http\Status;
@@ -26,9 +27,9 @@ use Swow\Sync\WaitReference;
 use function usleep;
 
 /**
- * @covers \Swow\Psr7\Client\Client
  * @internal
  */
+#[CoversClass(Client::class)]
 final class ClientTest extends TestCase
 {
     /** This causes HttpParser fall into dead-loop before */

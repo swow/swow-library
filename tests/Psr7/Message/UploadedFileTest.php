@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace Swow\Tests\Psr7\Message;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Swow\Psr7\Message\UploadedFile;
 use Swow\Psr7\Psr7;
 
 use function file_get_contents;
@@ -23,8 +25,8 @@ use function tempnam;
 
 /**
  * @internal
- * @covers \Swow\Psr7\Message\UploadedFile
  */
+#[CoversClass(UploadedFile::class)]
 final class UploadedFileTest extends TestCase
 {
     public function testMove(): void

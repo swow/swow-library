@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swow\Tests\Stream;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Swow\Coroutine;
 use Swow\Errno;
@@ -27,8 +28,8 @@ use function Swow\TestUtils\getRandomBytes;
 
 /**
  * @internal
- * @covers \Swow\Stream\EofStream
  */
+#[CoversClass(EofStream::class)]
 final class EofStreamTest extends TestCase
 {
     public function testBase(): void

@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Swow\Tests\Psr7\Server;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\UploadedFileInterface;
 use ReflectionProperty;
@@ -57,8 +59,9 @@ use function usleep;
 
 /**
  * @internal
- * @covers \Swow\Psr7\Server\Server
  */
+#[CoversNothing]
+#[CoversClass(Server::class)]
 final class ServerTest extends TestCase
 {
     protected int $maxBufferSize;

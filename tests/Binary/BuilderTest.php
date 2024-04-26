@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swow\Tests\Binary;
 
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 use function array_map;
@@ -29,9 +30,9 @@ use const PHP_BINARY;
 use const PHP_OS_FAMILY;
 
 /**
- * @coversNothing
  * @internal
  */
+#[CoversNothing]
 final class BuilderTest extends TestCase
 {
     protected static string $builderPath;
