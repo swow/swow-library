@@ -1,24 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit
-         backupGlobals="false"
-         backupStaticAttributes="false"
-         bootstrap="tests/bootstrap.php"
-         verbose="true"
-         colors="true"
-         convertErrorsToExceptions="true"
-         convertNoticesToExceptions="true"
-         convertWarningsToExceptions="true"
-         processIsolation="false"
-         stopOnFailure="false">
-    <testsuite name="Testsuite">
-        <directory>tests</directory>
-    </testsuite>
-    <coverage>
-        <include>
-            <directory suffix=".php">src</directory>
-        </include>
-        <report>
-            <clover outputFile="build/coverage.xml"/>
-        </report>
-    </coverage>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" backupGlobals="false" bootstrap="tests/bootstrap.php" colors="true" processIsolation="false" stopOnFailure="false" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.0/phpunit.xsd" cacheDirectory=".phpunit.cache" backupStaticProperties="false">
+  <testsuite name="Testsuite">
+    <directory>tests</directory>
+  </testsuite>
+  <coverage>
+    <report>
+      <clover outputFile="build/coverage.xml"/>
+    </report>
+  </coverage>
+  <source>
+    <include>
+      <directory suffix=".php">src</directory>
+    </include>
+  </source>
 </phpunit>
