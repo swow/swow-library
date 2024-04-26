@@ -65,8 +65,6 @@ trait ReceiverTrait
 
     protected int $parsedOffset = 0;
 
-    protected int $maxBufferSize = Buffer::COMMON_SIZE;
-
     protected float $bufferLoadFactor = 0.75;
 
     protected bool $preserveBodyData = false;
@@ -93,24 +91,6 @@ trait ReceiverTrait
         $this->httpParser = (new HttpParser())
             ->setType($type)
             ->setEvents($events | $requiredEvents);
-    }
-
-    public function getMaxBufferSize(): int
-    {
-        return $this->maxBufferSize;
-    }
-
-    public function setMaxBufferSize(int $maxBufferSize): static
-    {
-        if (($maxBufferSize % Buffer::PAGE_SIZE) !== 0) {
-            throw new ValueError(sprintf(
-                '%s(): Argument#1 ($maxBufferSize) should be multiple of memory page size (%d)',
-                __METHOD__, Buffer::PAGE_SIZE
-            ));
-        }
-        $this->maxBufferSize = $maxBufferSize;
-
-        return $this;
     }
 
     public function getBufferLoadFactor(): float

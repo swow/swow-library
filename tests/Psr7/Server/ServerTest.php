@@ -61,6 +61,18 @@ use function usleep;
  */
 final class ServerTest extends TestCase
 {
+    protected int $maxBufferSize;
+
+    protected function setUp(): void
+    {
+        $server = new Server();
+        $server->bind('127.0.0.1')->listen();
+        $client = new Socket(Socket::TYPE_TCP);
+        $client->connect($server->getSockAddress(), $server->getSockPort());
+        $connection = $server->acceptConnection();
+        $this->maxBufferSize = $connection->getMaxHeaderLength();
+    }
+
     public function testHttpServer(): void
     {
         $randomBytes = getRandomBytes();
@@ -248,11 +260,10 @@ final class ServerTest extends TestCase
             "\r\n" .
             "----------------------------{$boundary}--\r\n";
 
-        $maxBufferSize = (new ReflectionProperty(ReceiverTrait::class, 'maxBufferSize'))->getDefaultValue();
-        $fileData = str_repeat('0', 2 * $maxBufferSize);
+        $fileData = str_repeat('0', 2 * $this->maxBufferSize);
         $body = sprintf($bodyFormat, $fileData);
         $request = sprintf($headFormat, strlen($body)) . $body;
-        $request[2 * $maxBufferSize - 1] = "\r";
+        $request[2 * $this->maxBufferSize - 1] = "\r";
 
         $wr = new WaitReference();
         $channel = new Channel();
@@ -281,8 +292,6 @@ final class ServerTest extends TestCase
 
     public function testRequestUriOrHeaderFieldsTooLarge(): void
     {
-        $maxBufferSize = (new ReflectionProperty(ReceiverTrait::class, 'maxBufferSize'))->getDefaultValue();
-
         $server = new Server();
         $server->bind('127.0.0.1')->listen();
 
@@ -305,14 +314,14 @@ final class ServerTest extends TestCase
         $client = new Socket(Socket::TYPE_TCP);
         $client
             ->connect($server->getSockAddress(), $server->getSockPort())
-            ->send(Http::packRequest('GET', '/' . str_repeat('x', $maxBufferSize + 1)));
+            ->send(Http::packRequest('GET', '/' . str_repeat('x', $this->maxBufferSize + 1)));
         $this->assertSame(Status::REQUEST_URI_TOO_LARGE, $channel->pop());
 
         $client = new Socket(Socket::TYPE_TCP);
         $client
             ->connect($server->getSockAddress(), $server->getSockPort())
             ->send(Http::packRequest('GET', '/', [
-                'foo' => str_repeat('x', $maxBufferSize),
+                'foo' => str_repeat('x', $this->maxBufferSize),
             ]));
         $this->assertSame(Status::REQUEST_HEADER_FIELDS_TOO_LARGE, $channel->pop());
 
