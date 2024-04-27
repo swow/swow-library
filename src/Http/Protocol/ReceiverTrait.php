@@ -658,6 +658,8 @@ trait ReceiverTrait
                         length: $payloadLength - $unparsedLength
                     );
                 }
+                /* Notice: $parsedOffset may be bigger than $buffer->getLength(),
+                 * because we may recv payloadData from remote instead of unparsed buffer. */
                 $parsedOffset += $payloadLength;
                 if ($header->getMask() && $this->autoUnmask) {
                     WebSocket::unmask($payloadData, maskingKey: $header->getMaskingKey());
@@ -676,8 +678,11 @@ trait ReceiverTrait
     protected function updateParsedOffsetAndRecycleBufferSpace(Buffer $buffer, int $parsedOffset): void
     {
         if (
-            /* All data has been parsed, clear them */
-            $buffer->getLength() === $parsedOffset ||
+            /* All data has been parsed, clear them
+             * Notice: do not use $parsedOffset === $buffer->getLength() here,
+             * because $parsedOffset may be bigger than $buffer->getLength() when
+             * we recv payloadData from remote instead of unparsed buffer. */
+            $parsedOffset >= $buffer->getLength() ||
             /* More than size * load_factor of the data has been parsed,
              * prefer to move the remaining data to the front of buffer.
              * Otherwise, the length of data received next time may be a little less,

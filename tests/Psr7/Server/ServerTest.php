@@ -17,7 +17,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\UploadedFileInterface;
-use ReflectionProperty;
 use RuntimeException;
 use Swow\Channel;
 use Swow\Coroutine;
@@ -25,7 +24,6 @@ use Swow\Errno;
 use Swow\Http\Http;
 use Swow\Http\Mime\MimeType;
 use Swow\Http\Protocol\ProtocolException as HttpProtocolException;
-use Swow\Http\Protocol\ReceiverTrait;
 use Swow\Http\Status;
 use Swow\Psr7\Client\Client;
 use Swow\Psr7\Message\Request;
@@ -47,6 +45,7 @@ use function microtime;
 use function msleep;
 use function putenv;
 use function serialize;
+use function sleep;
 use function sprintf;
 use function str_repeat;
 use function strlen;
@@ -60,8 +59,8 @@ use function usleep;
 /**
  * @internal
  */
-#[CoversNothing]
 #[CoversClass(Server::class)]
+#[CoversNothing]
 final class ServerTest extends TestCase
 {
     protected int $maxBufferSize;
@@ -451,7 +450,7 @@ final class ServerTest extends TestCase
         $server->bind('127.0.0.1')->listen();
         $random = str_repeat(getRandomBytes(1024), 1024);
         $wr = new WaitReference();
-        Coroutine::run(static function () use ($server, $random, $wr): void {
+        Coroutine::run(static function () use ($server, $wr): void {
             $connection = $server->acceptConnection();
             $connection->upgradeToWebSocket($connection->recvHttpRequest());
             $frame = $connection->recvWebSocketFrame();
@@ -464,6 +463,32 @@ final class ServerTest extends TestCase
         $client->sendWebSocketFrame(Psr7::createWebSocketTextFrame($random));
         $frame = $client->recvWebSocketFrame();
         $this->assertSame((string) $frame->getPayloadData(), $random);
+        $wr::wait($wr);
+    }
+
+    public function testWebSocketMultiFrames(): void
+    {
+        $server = new Server();
+        $server->bind('127.0.0.1')->listen();
+        $wr = new WaitReference();
+        $heartbeatFrame = Psr7::createWebSocketTextFrame(serialize(['type' => 'heartbeat']));
+        Coroutine::run(static function () use ($server, $heartbeatFrame, $wr): void {
+            $connection = $server->acceptConnection();
+            $connection->upgradeToWebSocket($connection->recvHttpRequest());
+            for ($i = 0; $i < 1000; $i++) {
+                $connection->sendWebSocketFrame($heartbeatFrame);
+            }
+        });
+        $client = new Client();
+        $client->connect($server->getSockAddress(), $server->getSockPort());
+        $request = Psr7::createRequest(method: 'GET', uri: '/chat');
+        $client->upgradeToWebSocket($request);
+        sleep(1);
+        for ($i = 0; $i < 1000; $i++) {
+            $frame = $client->recvWebSocketFrame();
+            $array = @unserialize((string) $frame->getPayloadData());
+            $this->assertSame('heartbeat', $array['type']);
+        }
         $wr::wait($wr);
     }
 
