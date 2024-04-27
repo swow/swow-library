@@ -240,7 +240,7 @@ trait ReceiverTrait
                             $readTimeout = $timeout - $timePassed;
                         }
                     }
-                    $this->recvData($buffer, $buffer->getLength(), timeout: $readTimeout);
+                    $this->recvData($buffer, offset: $buffer->getLength(), timeout: $readTimeout);
                     /** @noinspection PhpUnusedLocalVariableInspection (on the safe-side) */
                     $expectMoreData = false;
                 }
@@ -621,7 +621,7 @@ trait ReceiverTrait
         try {
             /* recv header */
             while ($unparsedLength < WebSocket::HEADER_MIN_SIZE) {
-                $unparsedLength += $this->recvData($buffer, $buffer->getLength());
+                $unparsedLength += $this->recvData($buffer, offset: $buffer->getLength());
             }
             $header->write(
                 offset: 0,
@@ -631,7 +631,7 @@ trait ReceiverTrait
             );
             $headerSize = $header->getHeaderSize();
             while ($unparsedLength < $headerSize) {
-                $unparsedLength += $this->recvData($buffer, $buffer->getLength());
+                $unparsedLength += $this->recvData($buffer, offset: $buffer->getLength());
             }
             $header->write(
                 offset: WebSocket::HEADER_MIN_SIZE,
