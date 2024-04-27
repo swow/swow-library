@@ -44,7 +44,6 @@ use function strcasecmp;
 use function strtolower;
 use function sys_get_temp_dir;
 use function tempnam;
-use function time;
 use function trim;
 
 use const PHP_INT_MAX;
