@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swow\Tests\Psr7\Server;
 
+use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Swow\Coroutine;
 use Swow\Http\Status;
@@ -31,8 +32,8 @@ use const CURLOPT_URL;
 
 /**
  * @internal
- * @covers \Swow\Psr7\Server\ServerConnection::sendHttpFile()
  */
+#[CoversMethod(\Swow\Psr7\Server\ServerConnection::class, 'sendHttpFile')]
 final class ServerConnectionTest extends TestCase
 {
     protected string $tempFile = '';
