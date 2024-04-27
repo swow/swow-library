@@ -27,6 +27,7 @@ use function bin2hex;
 use function count;
 use function implode;
 use function is_numeric;
+use function strlen;
 use function strtolower;
 use function substr;
 use function Swow\Debug\var_dump_return;
@@ -53,6 +54,7 @@ trait DebuggerCommandTrait
         'exec' => 'print',
         'z' => 'zombie',
         'q' => 'quit',
+        'exit' => 'quit',
         'r' => 'run',
         'h' => 'help',
     ];
@@ -65,12 +67,14 @@ trait DebuggerCommandTrait
     /** @param string[] $arguments */
     protected function executeCommand(string $command, array $arguments): void
     {
+        $command = strtolower($command);
+        $command = $this::convertCommandShortNameToFullName($command);
         if (!static::$commandMethods) {
             $reflectionCommandMethods = $this->reflection->getMethods();
             foreach ($reflectionCommandMethods as $method) {
                 $methodName = $method->getName();
                 if (str_starts_with($methodName, 'command')) {
-                    $commandName = substr($methodName, 7);
+                    $commandName = substr($methodName, strlen('command'));
                     $commandName = strtolower($commandName);
                     static::$commandMethods[$commandName] = $method->getClosure($this);
                 }
@@ -93,7 +97,7 @@ trait DebuggerCommandTrait
 
     public function commandBacktrace(): void
     {
-        $this->showCoroutine($this->getCurrentCoroutine(), false)
+        $this->showCoroutine($this->getCurrentCoroutine())
             ->showSourceFileContentByTrace($this->getCurrentCoroutineTrace(), 0, true);
     }
 
@@ -136,13 +140,13 @@ trait DebuggerCommandTrait
         }
         $frameIndex = (int) $frameIndex;
         if ($this->getCurrentFrameIndex() !== $frameIndex) {
-            $this->out("Switch to frame {$frameIndex}");
+            $this->out("Switch to frame {$frameIndex}\n");
         }
         $this->setCurrentFrameIndex($frameIndex);
         $trace = $this->getCurrentCoroutineTrace();
         $frameIndex = $this->getCurrentFrameIndex();
         $this
-            ->showTrace($trace, $frameIndex, false)
+            ->showTrace($trace, $frameIndex)
             ->showSourceFileContentByTrace($trace, $frameIndex, true);
     }
 
@@ -155,7 +159,7 @@ trait DebuggerCommandTrait
         $coroutine = $this->getCurrentCoroutine();
         if ($coroutine === Coroutine::getCurrent()) {
             $this
-                ->out("Added global break-point <{$breakPoint}>")
+                ->out("Added global break-point <{$breakPoint}>\n")
                 ->addBreakPoint($breakPoint);
         }
     }
@@ -201,7 +205,7 @@ trait DebuggerCommandTrait
                 break;
             case 'continue':
                 static::getDebugContextOfCoroutine($coroutine)->stop = false;
-                $this->out("Coroutine#{$coroutine->getId()} continue to run...");
+                $this->out("Coroutine#{$coroutine->getId()} continue to run...\n");
                 $coroutine->resume();
                 break;
             default:
@@ -230,7 +234,7 @@ trait DebuggerCommandTrait
         $coroutine = $this->getCurrentCoroutine();
         $index = $this->getCurrentFrameIndexExtendedForExecution();
         $result = var_dump_return($coroutine->eval($expression, $index));
-        $this->out($result, false);
+        $this->out($result);
     }
 
     public function commandExec(DebuggerCommandContext $context): void
@@ -245,7 +249,7 @@ trait DebuggerCommandTrait
         });
         // TODO: support ctrl + c (also support ctrl + c twice confirm on global scope?)
         $result = var_dump_return($transfer->pop());
-        $this->out($result, false);
+        $this->out($result);
     }
 
     public function commandVars(DebuggerCommandContext $context): void
@@ -269,7 +273,7 @@ trait DebuggerCommandTrait
          */
         // $result = var_dump_return($coroutine->getDefinedVars($index));
         $result = var_dump_return($coroutine->eval('get_defined_vars()', $index));
-        $this->out($result, false);
+        $this->out($result);
     }
 
     public function commandZombie(DebuggerCommandContext $context): void
@@ -278,7 +282,7 @@ trait DebuggerCommandTrait
         if (!is_numeric($time)) {
             throw new DebuggerException('Argument[1]: Time must be numeric');
         }
-        $this->out("Scanning zombie coroutines ({$time}s)...");
+        $this->out("Scanning zombie coroutines ({$time}s)...\n");
         /** @var WeakMap<Coroutine, int> $switchesMap */
         $switchesMap = new WeakMap();
         foreach (Coroutine::getAll() as $coroutine) {
@@ -292,7 +296,7 @@ trait DebuggerCommandTrait
             }
         }
         $this
-            ->out('Following coroutine maybe zombies:')
+            ->out("Following coroutine maybe zombies:\n")
             ->showCoroutines($zombies);
     }
 
@@ -304,16 +308,16 @@ trait DebuggerCommandTrait
         }
         foreach ($arguments as $index => $argument) {
             if (!is_numeric($argument)) {
-                $this->exception("Argument[{$index}] '{$argument}' is not numeric");
+                $this->exception("Argument[{$index}] '{$argument}' is not numeric\n");
             }
         }
         foreach ($arguments as $argument) {
             $coroutine = Coroutine::get((int) $argument);
             if ($coroutine) {
                 $coroutine->kill();
-                $this->out("Coroutine#{$argument} killed");
+                $this->out("Coroutine#{$argument} killed\n");
             } else {
-                $this->exception("Coroutine#{$argument} not exists");
+                $this->exception("Coroutine#{$argument} not exists\n");
             }
         }
     }
@@ -321,12 +325,23 @@ trait DebuggerCommandTrait
     public function commandKillAll(DebuggerCommandContext $context): void
     {
         Coroutine::killAll();
-        $this->out('All coroutines has been killed');
+        $this->out("All coroutines has been killed\n");
     }
 
     public function commandClear(DebuggerCommandContext $context): void
     {
         $this->clear();
+    }
+
+    public function commandQuit(DebuggerCommandContext $context): void
+    {
+        $this->quit();
+    }
+
+    public function commandShutdown(DebuggerCommandContext $context): void
+    {
+        Coroutine::killAll();
+        exit;
     }
 
     public function commandHelp(DebuggerCommandContext $context): void
@@ -336,6 +351,6 @@ trait DebuggerCommandTrait
             $commandShortNames = implode(', ', array_keys(static::$commandShortNameMap, $commandName, true));
             $commandInfo[] = ['command' => $commandName, 'alias' => $commandShortNames];
         }
-        $this->table($commandInfo);
+        $this->table($commandInfo)->lf();
     }
 }

@@ -17,86 +17,102 @@ declare(strict_types=1);
 
 namespace Swow\Debug\Debugger;
 
-use Swow\Socket;
+use Swow\Buffer;
+
+use function count;
+use function explode;
+use function trim;
 
 trait DebuggerIoTrait
 {
-    protected Socket $input;
+    protected DebuggerIoInterface $io;
 
-    protected Socket $output;
+    protected array $outputBuffer = [];
 
-    protected Socket $error;
-
-    public function __constructDebuggerIo(): void
+    public function __constructDebuggerIo(DebuggerIoInterface $io): void
     {
-        $this->input = (new Socket(Socket::TYPE_STDIN))->setReadTimeout(-1);
-        $this->output = new Socket(Socket::TYPE_STDOUT);
-        $this->error = new Socket(Socket::TYPE_STDERR);
+        $this->io = $io;
     }
 
-    public function in(bool $prefix = true): string
+    public function in(bool $prefix = true): array
     {
-        if ($prefix) {
-            $this->out("\r> ", false);
+        $line = $this->io->in();
+        $parts = explode(' ', $line);
+        $arguments = [];
+        foreach ($parts as $part) {
+            $argument = trim($part);
+            if ($argument === '') {
+                continue;
+            }
+            $arguments[] = $argument;
         }
-
-        return $this->input->recvString();
+        return $arguments;
     }
 
-    public function out(string $string = '', bool $newline = true): static
+    /** @param string|non-empty-array<string|Stringable|Buffer|null> $data */
+    public function out(string|array $data): static
     {
-        $this->output->write([$string, $newline ? "\n" : null]);
-
+        $this->io->out($data);
         return $this;
     }
 
-    public function exception(string $string = '', bool $newline = true): static
+    public function exception(string|array $data): static
     {
-        $this->output->write([$string, $newline ? "\n" : null]);
-
+        $this->io->out($data);
         return $this;
     }
 
-    public function error(string $string = '', bool $newline = true): static
+    public function error(string|array $data): static
     {
-        $this->error->write([$string, $newline ? "\n" : null]);
+        $this->io->error($data);
+        return $this;
+    }
 
+    public function flush(): static
+    {
+        $this->io->out($this->outputBuffer);
+        $this->outputBuffer = [];
         return $this;
     }
 
     public function cr(): static
     {
-        return $this->out("\r", false);
+        $lastLineIndex = count($this->outputBuffer) - 1;
+
+        return $this->out("\r");
     }
 
     public function lf(): static
     {
-        return $this->out("\n", false);
+        return $this->out("\n");
     }
 
     public function clear(): static
     {
-        $this->output->send("\033c");
-
+        if ($this->io->isTty()) {
+            $this->io->out("\033c\n");
+        }
         return $this;
+    }
+
+    public function quit(): void
+    {
+        $this->io->quit();
     }
 
     /**
      * @param array<mixed> $table
      */
-    public function table(array $table, bool $newline = true): static
+    public function table(array $table): static
     {
-        return $this->out(DebuggerHelper::tableFormat($table), $newline);
+        return $this->out(DebuggerHelper::tableFormat($table));
     }
 
     protected function setCursorVisibility(bool $bool): static
     {
-        // TODO tty check support
-        /* @phpstan-ignore-next-line */
-        if (1 /* is tty */) {
-            $this->out("\033[?25" . ($bool ? 'h' : 'l'));
+        if ($this->io->isTty()) {
+            $this->out(sprintf("\033[?25%s\n", $bool ? 'h' : 'l'));
         }
-
         return $this;
     }
 }

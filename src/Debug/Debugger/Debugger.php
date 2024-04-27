@@ -18,19 +18,14 @@ use SplFileObject;
 use Swow\Coroutine;
 use Throwable;
 
-use function array_filter;
-use function array_shift;
+use function array_slice;
 use function count;
-use function explode;
-use function func_get_args;
-use function strtolower;
-use function trim;
 
 use const PHP_INT_MAX;
 
 class Debugger
 {
-    public const SDB = <<<'TEXT'
+    protected const DEFAULT_GREETING = <<<'GREETING'
   ██████ ▓█████▄  ▄▄▄▄
 ▒██    ▒ ▒██▀ ██▌▓█████▄
 ░ ▓██▄   ░██   █▌▒██▒ ▄██
@@ -41,18 +36,18 @@ class Debugger
 -------------------
 SDB (Swow Debugger)
 -------------------
-TEXT;
+
+GREETING;
 
     /** @var static */
     protected static self $instance;
 
+    public Coroutine $debuggerCoroutine;
+
     protected ReflectionObject $reflection;
 
-    protected bool $daemon = true;
-
-    protected bool $reloading = false;
-
-    protected string $lastCommand = '';
+    /** @var string[] */
+    protected array $lastCommand = [];
 
     protected Coroutine $currentCoroutine;
 
@@ -80,14 +75,13 @@ TEXT;
 
     final protected static function getInstance(): static
     {
-        /* @phpstan-ignore-next-line */
-        return self::$instance ?? (self::$instance = new static());
+        return self::$instance ?? throw new DebuggerException('Debugger is not initialized');
     }
 
-    protected function __construct()
+    protected function __construct(DebuggerIoInterface $io)
     {
         $this->reflection = new ReflectionObject($this);
-        $this->__constructDebuggerIo();
+        $this->__constructDebuggerIo($io);
         $this->__constructDebuggerSourceMap();
         $this->setCurrentCoroutine(Coroutine::getCurrent());
     }
@@ -97,12 +91,14 @@ TEXT;
         $this->__destructDebuggerBreakpoint();
     }
 
-    public function getLastCommand(): string
+    /** @return string[] */
+    public function getLastCommand(): array
     {
         return $this->lastCommand;
     }
 
-    public function setLastCommand(string $lastCommand): static
+    /** @param string[] $lastCommand */
+    public function setLastCommand(array $lastCommand): static
     {
         $this->lastCommand = $lastCommand;
 
@@ -190,25 +186,27 @@ TEXT;
      *     'line': int|null,
      * }> $trace
      */
-    protected function showTrace(array $trace, ?int $frameIndex = null, bool $newLine = true): static
+    protected function showTrace(array $trace, ?int $frameIndex = null): static
     {
         $traceTable = DebuggerHelper::convertTraceToTable($trace, $frameIndex);
         foreach ($traceTable as &$traceItem) {
             $traceItem['source_position'] = $this->callSourceMapHandler($traceItem['source_position']);
         }
         unset($traceItem);
-        $this->table($traceTable, $newLine);
+        $this->table($traceTable);
 
         return $this;
     }
 
-    protected function showCoroutine(Coroutine $coroutine, bool $newLine = true): static
+    protected function showCoroutine(Coroutine $coroutine): static
     {
         $debugInfo = static::getSimpleInfoOfCoroutine($coroutine, false);
         $trace = static::getTraceOfCoroutine($coroutine);
-        $this->table([$debugInfo], !$trace);
+        $this->table([$debugInfo]);
         if ($trace) {
-            $this->cr()->showTrace($trace, null, $newLine);
+            $this->cr()->showTrace($trace);
+        } else {
+            $this->lf();
         }
 
         return $this;
@@ -229,7 +227,7 @@ TEXT;
             $map[] = $info;
         }
 
-        return $this->table($map);
+        return $this->table($map)->lf();
     }
 
     /**
@@ -258,7 +256,7 @@ TEXT;
             $this->cr();
         }
 
-        return $this->table($contentTable);
+        return $this->table($contentTable)->lf();
     }
 
     protected function showFollowingSourceFileContent(int $lineCount = DebuggerHelper::SOURCE_FILE_DEFAULT_LINE_COUNT): static
@@ -271,111 +269,71 @@ TEXT;
 
         return $this
             ->table(DebuggerHelper::getFollowingSourceFileContent($sourceFile, $line, $lineCount))
+            ->lf()
             ->setCurrentSourceFileLine($line + $lineCount - 1);
     }
 
-    protected static function isNoOtherCoroutinesRunning(): bool
+    // protected static function isNoOtherCoroutinesRunning(): bool
+    // {
+    //     foreach (Coroutine::getAll() as $coroutine) {
+    //         if ($coroutine === Coroutine::getCurrent()) {
+    //             continue;
+    //         }
+    //
+    //         return false;
+    //     }
+    //
+    //     return true;
+    // }
+
+    protected function loop(): void
     {
-        foreach (Coroutine::getAll() as $coroutine) {
-            if ($coroutine === Coroutine::getCurrent()) {
-                continue;
-            }
-
-            return false;
-        }
-
-        return true;
-    }
-
-    public function logo(): static
-    {
-        return $this->clear()->out($this::SDB)->lf();
-    }
-
-    public function run(string $keyword = ''): static
-    {
-        if ($this->reloading) {
-            $this->reloading = false;
-            goto _recvLoop;
-        }
-        $this->setCursorVisibility(true);
-        if (static::isNoOtherCoroutinesRunning()) {
-            $this->daemon = false;
-            $this->logo()->out('Enter \'r\' to run your program');
-            goto _recvLoop;
-        }
-        if ($keyword !== '') {
-            $this->lf()->out("You can input '{$keyword}' to to call out the debug interface...");
-        }
-        _restart:
-        if ($keyword !== '') {
-            while ($in = $this->in(false)) {
-                if (trim($in) === $keyword) {
-                    break;
-                }
-            }
-        }
-        $this->logo();
-        _recvLoop:
-        while ($in = $this->in()) {
-            if ($in === "\n") {
+        while (true) {
+            $in = $this->in();
+            if ($in === []) {
                 $in = $this->getLastCommand();
+                if ($in === []) {
+                    continue;
+                }
             }
             $this->setLastCommand($in);
-            _next:
             try {
-                $lines = array_filter(explode("\n", $in));
-                foreach ($lines as $line) {
-                    $arguments = explode(' ', $line);
-                    foreach ($arguments as &$argument) {
-                        $argument = trim($argument);
-                    }
-                    unset($argument);
-                    $arguments = array_filter($arguments, static fn(string $value) => $value !== '');
-                    $command = array_shift($arguments);
-                    $command = strtolower($command);
-                    $command = $this::convertCommandShortNameToFullName($command);
-                    switch ($command) {
-                        case 'quit':
-                        case 'exit':
-                            $this->clear();
-                            if ($keyword !== '' && !static::isNoOtherCoroutinesRunning()) {
-                                /* we can input keyword to call out the debugger later */
-                                goto _restart;
-                            }
-                            goto _quit;
-                        case 'run':
-                            if ($this->daemon) {
-                                throw new DebuggerException('Debugger is already running');
-                            }
-                            $args = func_get_args();
-                            Coroutine::run(function () use ($args): void {
-                                $this->reloading = true;
-                                $this->daemon = true;
-                                $this
-                                    ->out('Program is running...')
-                                    ->run(...$args);
-                            });
-                            goto _quit;
-                        case null:
-                            break;
-                        default:
-                            $this->executeCommand($command, $arguments);
-                    }
+                $command = $in[0];
+                $arguments = array_slice($in, 1);
+                switch ($command) {
+                    case null:
+                        break;
+                    default:
+                        $this->executeCommand($command, $arguments);
                 }
             } catch (DebuggerException $exception) {
-                $this->exception($exception->getMessage());
+                $this->out([$exception->getMessage(), "\n"]);
             } catch (Throwable $throwable) {
-                $this->error((string) $throwable);
+                $this->error([(string) $throwable, "\n"]);
             }
         }
+    }
 
-        _quit:
+    public function run(): static
+    {
+        if (isset($this->debuggerCoroutine)) {
+            throw new DebuggerException('Debugger is already running');
+        }
+        // $this->logo();
+        $this->setCursorVisibility(true);
+        $this->debuggerCoroutine = Coroutine::run([$this, 'loop']);
         return $this;
     }
 
-    public static function runOnTTY(string $keyword = 'sdb'): static
+    public static function runOnTTY(): static
     {
-        return static::getInstance()->run($keyword);
+        self::$instance = new static(new DebuggerIoStdIO(greeting: static::DEFAULT_GREETING));
+        return static::getInstance()->run();
+    }
+
+    public static function runOnEofStream(): static
+    {
+        self::$instance = new static(new DebuggerIoEofStream('127.0.0.1', port: 33284, greeting: static::DEFAULT_GREETING));
+        return static::getInstance()->run();
     }
 }
