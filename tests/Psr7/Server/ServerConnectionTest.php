@@ -21,8 +21,11 @@ use Swow\Psr7\Psr7;
 use Swow\Psr7\Server\Server;
 use Swow\Sync\WaitReference;
 
+use Swow\Utils\FileSystem\FileSystem;
 use function array_map;
+use function file_exists;
 use function is_numeric;
+use function mkdir;
 use function Swow\TestUtils\getRandomBytes;
 
 use const CURLOPT_HEADER;
@@ -44,9 +47,10 @@ final class ServerConnectionTest extends TestCase
     {
         $tempDir = __DIR__ . '/temp';
 
-        if (!is_dir($tempDir)) {
-            mkdir($tempDir);
+        if (file_exists($tempDir)) {
+            FileSystem::remove($tempDir);
         }
+        mkdir($tempDir);
 
         $this->tempDir = $tempDir;
 
@@ -57,10 +61,7 @@ final class ServerConnectionTest extends TestCase
 
     protected function tearDown(): void
     {
-        unlink($this->tempFile);
-        rmdir($this->tempDir);
-        $this->tempFile = '';
-        $this->tempDir = '';
+        FileSystem::remove($this->tempDir);
     }
 
     public function testSendHttpFile(): void
