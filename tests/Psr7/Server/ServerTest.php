@@ -113,6 +113,7 @@ final class ServerTest extends TestCase
     public function getMixedServer(): Server
     {
         putenv('SERVER_PORT=0');
+        putenv('CI=1');
         $mixedServerFile = __DIR__ . '/../../../../../examples/http_server/mixed.php';
         if (!file_exists($mixedServerFile)) {
             $this->markTestSkipped('unable to find mixed server example file');
