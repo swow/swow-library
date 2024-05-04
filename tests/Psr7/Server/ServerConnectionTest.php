@@ -13,15 +13,16 @@ declare(strict_types=1);
 
 namespace Swow\Tests\Psr7\Server;
 
-use PHPUnit\Framework\Attributes\CoversMethod;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Swow\Coroutine;
 use Swow\Http\Status;
 use Swow\Psr7\Psr7;
 use Swow\Psr7\Server\Server;
+use Swow\Psr7\Server\ServerConnection;
 use Swow\Sync\WaitReference;
-
 use Swow\Utils\FileSystem\FileSystem;
+
 use function array_map;
 use function file_exists;
 use function is_numeric;
@@ -36,7 +37,7 @@ use const CURLOPT_URL;
 /**
  * @internal
  */
-#[CoversMethod(\Swow\Psr7\Server\ServerConnection::class, 'sendHttpFile')]
+#[CoversClass(ServerConnection::class)]
 final class ServerConnectionTest extends TestCase
 {
     protected string $tempFile = '';
