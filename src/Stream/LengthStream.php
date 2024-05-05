@@ -124,7 +124,7 @@ class LengthStream extends Socket
     public function recvMessageString(?int $timeout = null): string
     {
         $buffer = new Buffer(0);
-        $this->recvMessage($buffer, $timeout);
+        $this->recvMessage($buffer, timeout: $timeout);
 
         return $buffer->toString();
     }
